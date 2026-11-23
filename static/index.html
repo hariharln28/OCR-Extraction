@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f6">
+  <meta name="description" content="Extract text from images and export searchable PDFs with OCR Extraction.">
+  <title>OCR Extraction — words, in focus</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f8f6;
+      --surface: #fff;
+      --ink: #202a27;
+      --muted: #78827d;
+      --line: #e5e9e5;
+      --green: #245c4a;
+      --green-dark: #194838;
+      --mint: #eaf3ed;
+      --gold: #f0c66c;
+      --shadow: 0 18px 55px rgba(37, 55, 45, .07), 0 2px 8px rgba(37, 55, 45, .04);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--paper);
+      color: var(--ink);
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: -.01em;
+    }
+    button, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .shell { max-width: 1320px; margin: auto; padding: 0 42px; }
+    header {
+      height: 82px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(32, 42, 39, .07);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 15px; font-weight: 700; letter-spacing: -.04em; }
+    .brand-mark {
+      width: 31px; height: 31px; border-radius: 10px; display: grid; place-items: center;
+      background: var(--green); color: white; box-shadow: 0 4px 10px #245c4a30;
+    }
+    .brand-mark svg { width: 17px; }
+    .header-note { color: var(--muted); font-size: 12px; }
+    main { padding: 58px 0 70px; }
+    .intro { max-width: 720px; margin: 0 auto 34px; text-align: center; animation: rise .6s both; }
+    .eyebrow { color: var(--green); font-size: 11px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 12px 0 12px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(38px, 5vw, 58px); font-weight: 500; letter-spacing: -.055em; line-height: 1.08; }
+    .intro p { margin: 0; color: var(--muted); font-size: 15px; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.13fr) minmax(340px, .87fr); gap: 20px; align-items: stretch; }
+    .card { min-width: 0; background: var(--surface); border: 1px solid #e9ece8; border-radius: 20px; box-shadow: var(--shadow); animation: rise .55s .08s both; }
+    .card-head { min-height: 72px; padding: 18px 21px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #edf0ed; }
+    .card-title { font-size: 13px; font-weight: 700; letter-spacing: -.02em; }
+    .card-subtitle { margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .pill {
+      display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 8px;
+      padding: 0 15px; border: 1px solid var(--line); border-radius: 9999px; background: #fff;
+      color: var(--ink); font-size: 12px; font-weight: 650; white-space: nowrap; transition: .18s ease;
+    }
+    .pill:hover:not(:disabled) { transform: translateY(-1px); border-color: #b7c8bd; box-shadow: 0 5px 12px #20352b10; }
+    .pill:focus-visible, .drop-zone:focus-visible { outline: 3px solid #78a68b80; outline-offset: 3px; }
+    .pill:disabled { cursor: not-allowed; opacity: .48; }
+    .pill.primary { border-color: var(--green); background: var(--green); color: white; }
+    .pill.primary:hover:not(:disabled) { background: var(--green-dark); }
+    .pill.soft { border-color: transparent; background: var(--mint); color: var(--green-dark); }
+    .pill svg { width: 14px; height: 14px; }
+    .upload-button { min-height: 34px; padding: 0 12px; font-size: 11px; }
+    .image-stage {
+      position: relative; min-height: 370px; margin: 17px; overflow: hidden; display: grid; place-items: center;
+      border: 1px dashed #d8dfd9; border-radius: 14px; background-color: #fafbf9;
+      background-image: radial-gradient(#dfe5df 1px, transparent 1px); background-size: 19px 19px;
+    }
+    .drop-zone { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; padding: 24px; text-align: center; transition: background .2s, transform .2s; }
+    .drop-zone.hidden { display: none; }
+    .drop-zone.dragging { background: #eaf3edcc; transform: scale(.99); }
+    .drop-content { max-width: 295px; }
+    .upload-icon { margin: 0 auto 14px; width: 47px; height: 47px; display: grid; place-items: center; border: 1px solid #e5ebe5; border-radius: 15px; background: white; color: var(--green); box-shadow: 0 7px 18px #20352b0b; }
+    .upload-icon svg { width: 19px; }
+    .drop-title { margin-bottom: 5px; font-size: 13px; font-weight: 700; }
+    .drop-caption { margin-bottom: 16px; color: var(--muted); font-size: 11px; }
+    .image-wrap { position: relative; display: none; max-width: 100%; max-height: 520px; line-height: 0; }
+    .image-wrap.visible { display: inline-block; }
+    .image-wrap img { display: block; max-width: 100%; max-height: 520px; width: auto; height: auto; object-fit: contain; }
+    .overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .overlay.hidden { display: none; }
+    .word-box {
+      position: absolute; min-width: 2px; min-height: 2px; padding: 0; border: 1px solid transparent;
+      background: #f0c66c16; color: transparent; font-size: 0; line-height: 1;
+      pointer-events: auto; user-select: text; transition: background .12s, border-color .12s;
+    }
+    .word-box:hover, .word-box.selected { z-index: 2; border-color: #e5ac3c; background: #f0c66c55; }
+    .word-box.selected { background: #6ca98773; border-color: #357657; }
+    .image-stage.scanning::after {
+      content: ""; position: absolute; z-index: 3; left: 0; right: 0; height: 2px; top: 0;
+      background: linear-gradient(90deg, transparent, #62a77d, #e4c477, transparent);
+      box-shadow: 0 0 15px #65a67b; animation: scan 1.6s ease-in-out infinite;
+    }
+    .image-foot { min-height: 49px; padding: 0 20px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .hint { color: var(--muted); font-size: 10px; }
+    .overlay-toggle { min-height: 31px; font-size: 10px; }
+    .right-card { display: flex; flex-direction: column; }
+    .right-card .card-head { flex-wrap: wrap; }
+    .language-row { display: flex; align-items: center; gap: 5px; }
+    .language-pill { min-height: 30px; padding: 0 10px; color: #64716b; font-size: 10px; }
+    .language-pill.active { border-color: #c3d8ca; background: var(--mint); color: var(--green-dark); }
+    .output-wrap { position: relative; flex: 1; min-height: 280px; padding: 18px 20px 12px; }
+    textarea {
+      display: block; width: 100%; height: 100%; min-height: 250px; resize: vertical; border: 0; outline: 0;
+      background: transparent; color: #343e39; font: 13px/1.85 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea::placeholder { color: #a4ada7; font: 12px/1.7 Inter, ui-sans-serif, system-ui, sans-serif; }
+    .selection-note { display: none; margin: 0 20px 12px; padding: 9px 11px; border-radius: 10px; background: #f5f8f5; color: var(--muted); font-size: 10px; }
+    .selection-note.visible { display: block; }
+    .selection-note strong { color: var(--green); font-weight: 650; }
+    .actions { display: flex; gap: 8px; padding: 13px 17px 17px; border-top: 1px solid #edf0ed; }
+    .actions .pill { flex: 1; min-width: 0; padding: 0 10px; font-size: 11px; }
+    .status { min-height: 36px; padding: 10px 20px 12px; color: var(--muted); font-size: 10px; }
+    .status.error { color: #a34738; }
+    .toast { position: fixed; z-index: 10; right: 24px; bottom: 24px; padding: 12px 16px; border: 1px solid #dfe8e1; border-radius: 9999px; background: white; box-shadow: var(--shadow); color: var(--green-dark); font-size: 12px; opacity: 0; transform: translateY(10px); pointer-events: none; transition: .24s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    footer { padding: 22px 0; color: #939c96; text-align: center; font-size: 10px; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+    @media (max-width: 860px) {
+      .shell { padding: 0 22px; }
+      main { padding-top: 42px; }
+      .workspace { grid-template-columns: minmax(0, 1fr); }
+      .image-stage { min-height: 310px; }
+      .right-card { min-height: 440px; }
+    }
+    @media (max-width: 520px) {
+      .shell { padding: 0 14px; }
+      header { height: 66px; }
+      .header-note { display: none; }
+      main { padding: 35px 0 42px; }
+      .intro { margin-bottom: 25px; }
+      .intro p { font-size: 13px; }
+      .card { border-radius: 16px; }
+      .card-head { padding: 15px; }
+      .language-row { gap: 3px; }
+      .language-pill { padding: 0 7px; font-size: 9px; }
+      .image-stage { min-height: 270px; margin: 12px; }
+      .image-foot { padding: 0 14px 12px; }
+      .output-wrap { padding: 15px; }
+      .actions { padding: 12px; }
+      .actions .pill { font-size: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8V5a1 1 0 0 1 1-1h3m8 0h3a1 1 0 0 1 1 1v3m0 8v3a1 1 0 0 1-1 1h-3m-8 0H5a1 1 0 0 1-1-1v-3"/><path d="M7.5 9h9M7.5 12h9m-9 3h6"/></svg></span>
+        OCR Extraction
+      </div>
+      <span class="header-note">Private by design · your images aren’t stored</span>
+    </header>
+    <main>
+      <section class="intro">
+        <div class="eyebrow">Image to text, thoughtfully</div>
+        <h1>Words, in focus.</h1>
+        <p>Bring text out of your images. Select, copy, and keep it searchable.</p>
+      </section>
+      <section class="workspace" aria-label="OCR workspace">
+        <article class="card">
+          <div class="card-head">
+            <div><div class="card-title">Your image</div><div class="card-subtitle" id="image-caption">A clear, well-lit image works best</div></div>
+            <button type="button" class="pill upload-button" id="upload-button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/></svg>
+              Upload image
+            </button>
+            <input id="file-input" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" hidden>
+          </div>
+          <div class="image-stage" id="image-stage">
+            <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="Choose an image or drop one here">
+              <div class="drop-content">
+                <div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M5 14v5a1 1 0 0 0 1 1h14v-5"/></svg></div>
+                <div class="drop-title">Drop an image to get started</div>
+                <div class="drop-caption">or browse files · PNG, JPG, WEBP · up to 20 MB</div>
+                <button type="button" class="pill soft" id="browse-button">Choose image</button>
+              </div>
+            </div>
+            <div class="image-wrap" id="image-wrap">
+              <img id="preview" alt="Uploaded image preview">
+              <div class="overlay" id="overlay" aria-label="Detected text overlay"></div>
+            </div>
+          </div>
+          <div class="image-foot">
+            <span class="hint" id="image-hint">Paste an image anywhere with Ctrl+V or ⌘V</span>
+            <button type="button" class="pill overlay-toggle" id="overlay-toggle" hidden>Show overlay</button>
+          </div>
+        </article>
+        <article class="card right-card">
+          <div class="card-head">
+            <div><div class="card-title">Extracted text</div><div class="card-subtitle">Choose the language in your image</div></div>
+            <div class="language-row" role="group" aria-label="OCR language">
+              <button type="button" class="pill language-pill active" data-language="eng" aria-label="English" title="English" aria-pressed="true">EN</button>
+              <button type="button" class="pill language-pill" data-language="hin" aria-label="Hindi" title="Hindi" aria-pressed="false">HI</button>
+              <button type="button" class="pill language-pill" data-language="kan" aria-label="Kannada" title="Kannada" aria-pressed="false">KN</button>
+              <button type="button" class="pill language-pill" data-language="eng+hin" aria-label="English and Hindi" title="English + Hindi" aria-pressed="false">EN+HI</button>
+              <button type="button" class="pill language-pill" data-language="eng+kan" aria-label="English and Kannada" title="English + Kannada" aria-pressed="false">EN+KN</button>
+              <button type="button" class="pill language-pill" data-language="eng+hin+kan" aria-label="English, Hindi, and Kannada" title="English + Hindi + Kannada" aria-pressed="false">ALL</button>
+            </div>
+          </div>
+          <div class="output-wrap">
+            <textarea id="result" aria-label="Extracted text" placeholder="Your extracted text will appear here. Upload an image, then start extraction." spellcheck="false"></textarea>
+          </div>
+          <div class="selection-note" id="selection-note">Image selection: <strong id="selection-text"></strong></div>
+          <div class="actions">
+            <button type="button" class="pill primary" id="extract-button" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h3l2-6 4 12 2-6h5"/></svg>Extract text
+            </button>
+            <button type="button" class="pill" id="copy-button" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>Copy text
+            </button>
+            <button type="button" class="pill" id="pdf-button" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 16v4h14v-4"/></svg>Download PDF
+            </button>
+          </div>
+          <div class="status" id="status" role="status" aria-live="polite">Ready when you are.</div>
+        </article>
+      </section>
+    </main>
+    <footer>Made for the words hiding in plain sight.</footer>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    const fileInput = document.querySelector("#file-input");
+    const dropZone = document.querySelector("#drop-zone");
+    const imageStage = document.querySelector("#image-stage");
+    const imageWrap = document.querySelector("#image-wrap");
+    const preview = document.querySelector("#preview");
+    const overlay = document.querySelector("#overlay");
+    const result = document.querySelector("#result");
+    const extractButton = document.querySelector("#extract-button");
+    const copyButton = document.querySelector("#copy-button");
+    const pdfButton = document.querySelector("#pdf-button");
+    const status = document.querySelector("#status");
+    const imageCaption = document.querySelector("#image-caption");
+    const imageHint = document.querySelector("#image-hint");
+    const overlayToggle = document.querySelector("#overlay-toggle");
+    const selectionNote = document.querySelector("#selection-note");
+    const selectionText = document.querySelector("#selection-text");
+    const toast = document.querySelector("#toast");
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+    let activeFile = null;
+    let activeLanguage = "eng";
+    let objectUrl = null;
+    let toastTimer;
+    let selectedWords = [];
+    let latestOcr = null;
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+    }
+    function setStatus(message, isError = false) {
+      status.textContent = message;
+      status.classList.toggle("error", isError);
+    }
+    function validateFile(file) {
+      const extensionOk = /\.(png|jpe?g|webp)$/i.test(file.name || "");
+      if ((!allowedTypes.includes(file.type) && !extensionOk) || file.type === "image/gif") {
+        showToast("Choose a PNG, JPG, or WEBP image.");
+        return false;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        showToast("That image is larger than 20 MB.");
+        return false;
+      }
+      return true;
+    }
+    function loadFile(file) {
+      if (!file || !validateFile(file)) return;
+      activeFile = file;
+      latestOcr = null;
+      selectedWords = [];
+      result.value = "";
+      overlay.replaceChildren();
+      overlayToggle.hidden = true;
+      selectionNote.classList.remove("visible");
+      imageCaption.textContent = file.name || "Pasted image";
+      imageHint.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · ready to extract`;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      objectUrl = URL.createObjectURL(file);
+      preview.src = objectUrl;
+      imageWrap.classList.add("visible");
+      dropZone.classList.add("hidden");
+      extractButton.disabled = false;
+      copyButton.disabled = true;
+      pdfButton.disabled = true;
+      setStatus("Image ready. Extract text when you’re ready.");
+    }
+    document.querySelector("#upload-button").addEventListener("click", () => fileInput.click());
+    document.querySelector("#browse-button").addEventListener("click", event => {
+      event.stopPropagation();
+      fileInput.click();
+    });
+    dropZone.addEventListener("click", event => {
+      if (!event.target.closest("button")) fileInput.click();
+    });
+    dropZone.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); fileInput.click(); }
+    });
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files[0]) loadFile(fileInput.files[0]);
+      fileInput.value = "";
+    });
+    for (const eventName of ["dragenter", "dragover"]) {
+      imageStage.addEventListener(eventName, event => {
+        event.preventDefault();
+        dropZone.classList.remove("hidden");
+        dropZone.classList.add("dragging");
+      });
+    }
+    for (const eventName of ["dragleave", "drop"]) {
+      imageStage.addEventListener(eventName, event => {
+        event.preventDefault();
+        dropZone.classList.remove("dragging");
+        if (activeFile) dropZone.classList.add("hidden");
+        if (eventName === "drop" && event.dataTransfer.files[0]) loadFile(event.dataTransfer.files[0]);
+      });
+    }
+    document.addEventListener("paste", event => {
+      const imageItem = [...(event.clipboardData?.items || [])].find(item => item.type.startsWith("image/"));
+      if (imageItem) {
+        const file = imageItem.getAsFile();
+        if (file) loadFile(new File([file], `clipboard.${file.type.split("/")[1] === "jpeg" ? "jpg" : file.type.split("/")[1]}`, {type: file.type}));
+      }
+    });
+    document.querySelectorAll(".language-pill").forEach(button => button.addEventListener("click", () => {
+      activeLanguage = button.dataset.language;
+      document.querySelectorAll(".language-pill").forEach(pill => {
+        const active = pill === button;
+        pill.classList.toggle("active", active);
+        pill.setAttribute("aria-pressed", String(active));
+      });
+      if (activeFile) setStatus(`Language set to ${button.textContent.trim()}.`);
+    }));
+
+    function renderOverlay(data) {
+      overlay.replaceChildren();
+      for (const word of data.words) {
+        const box = document.createElement("button");
+        box.type = "button";
+        box.className = "word-box";
+        box.textContent = word.text;
+        box.setAttribute("aria-label", `Select word: ${word.text}`);
+        box.title = `${word.text} · ${Math.round(word.conf)}% confidence`;
+        box.style.left = `${word.left / data.img_width * 100}%`;
+        box.style.top = `${word.top / data.img_height * 100}%`;
+        box.style.width = `${Math.max(word.width / data.img_width * 100, .35)}%`;
+        box.style.height = `${Math.max(word.height / data.img_height * 100, .8)}%`;
+        box.addEventListener("click", () => {
+          if (selectedWords.includes(word)) {
+            selectedWords = selectedWords.filter(item => item !== word);
+            box.classList.remove("selected");
+          } else {
+            selectedWords.push(word);
+            box.classList.add("selected");
+          }
+          const selection = selectedWords.map(item => item.text).join(" ");
+          selectionText.textContent = selection || "None";
+          selectionNote.classList.toggle("visible", selectedWords.length > 0);
+          if (selection) result.focus();
+        });
+        overlay.append(box);
+      }
+      overlayToggle.hidden = data.words.length === 0;
+      overlayToggle.textContent = "Hide overlay";
+      overlay.classList.remove("hidden");
+    }
+    overlayToggle.addEventListener("click", () => {
+      const hidden = overlay.classList.toggle("hidden");
+      overlayToggle.textContent = hidden ? "Show overlay" : "Hide overlay";
+    });
+    extractButton.addEventListener("click", async () => {
+      if (!activeFile) return;
+      extractButton.disabled = true;
+      pdfButton.disabled = true;
+      imageStage.classList.add("scanning");
+      setStatus("Reading the image…");
+      const form = new FormData();
+      form.append("file", activeFile, activeFile.name || "image.png");
+      try {
+        const response = await fetch(`/api/ocr?language=${encodeURIComponent(activeLanguage)}`, {method: "POST", body: form});
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Text extraction failed.");
+        latestOcr = data;
+        result.value = data.text;
+        renderOverlay(data);
+        copyButton.disabled = !data.text;
+        pdfButton.disabled = false;
+        setStatus(data.text ? `${data.words.length} words · ${data.lines.length} lines detected.` : "No readable text found. Try a sharper image or another language.");
+      } catch (error) {
+        setStatus(error.message || "Text extraction failed. Please try again.", true);
+      } finally {
+        extractButton.disabled = false;
+        imageStage.classList.remove("scanning");
+      }
+    });
+    copyButton.addEventListener("click", async () => {
+      if (!result.value) return;
+      try {
+        await navigator.clipboard.writeText(result.value);
+      } catch {
+        result.focus();
+        result.select();
+        if (!document.execCommand("copy")) {
+          setStatus("Could not copy text. Select it and copy manually.", true);
+          return;
+        }
+      }
+      showToast("Text copied to clipboard.");
+    });
+    pdfButton.addEventListener("click", async () => {
+      if (!activeFile) return;
+      pdfButton.disabled = true;
+      setStatus("Preparing your searchable PDF…");
+      const form = new FormData();
+      form.append("file", activeFile, activeFile.name || "image.png");
+      try {
+        const response = await fetch(`/api/ocr/pdf?language=${encodeURIComponent(activeLanguage)}`, {method: "POST", body: form});
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "PDF download failed.");
+        }
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "searchable-ocr.pdf";
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus("Searchable PDF downloaded.");
+        showToast("Your searchable PDF is ready.");
+      } catch (error) {
+        setStatus(error.message || "PDF download failed. Please try again.", true);
+      } finally {
+        pdfButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
