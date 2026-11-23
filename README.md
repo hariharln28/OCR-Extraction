@@ -25,9 +25,9 @@ python app.py
 
 Open [http://localhost:8000](http://localhost:8000). Set `PORT` to change the listening port. The server binds to `0.0.0.0` for container hosting. If Hindi or Kannada data is unavailable, the UI reports which package is missing; English can still be selected independently.
 
-## Deploy to Render
+## Deploy to Vercel
 
-1. Push this repository to GitHub and create a new **Web Service** in Render from the repository.
+1. Push this repository to GitHub and create a new **Web Service** in Vercel from the repository.
 2. Select **Docker** as the runtime. Render builds the included Dockerfile, which installs Tesseract and all three language packs.
 3. Deploy. The container starts with `python app.py`; Render's `PORT` environment variable is honored automatically.
 
